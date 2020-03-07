@@ -1,0 +1,6 @@
+model: /home/xwang/dhs/quora/model/pg-model_step_20000.pt
+src: /home/xwang/dhs/quora/data/test.src
+output: /home/xwang/dhs/quora/data/test.pred
+replace_unk: 'true'
+verbose: 'true'
+gpu: 0

@@ -1,0 +1,10 @@
+train_src           : /home/xwang/dhs/quora/data/train.src
+train_tgt           : /home/xwang/dhs/quora/data/train.tgt
+valid_src           : /home/xwang/dhs/quora/data/valid.src
+valid_tgt           : /home/xwang/dhs/quora/data/valid.tgt
+src_vocab_size      : 20000
+tgt_vocab_size      : 20000
+src_seq_length_trunc: 20
+tgt_seq_length_trunc: 20
+save_data           : /home/xwang/dhs/quora/data/pg
+share_vocab         : 'true'
