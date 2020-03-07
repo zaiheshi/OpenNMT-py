@@ -111,13 +111,19 @@ class Dataset(TorchtextDataset):
                  filter_pred=None):
         self.sort_key = sort_key
         can_copy = 'src_map' in fields and 'alignment' in fields
-
+        # read_iters: [generator1, generator2] 
+        # generator1: {"src": seq, "indices": i}
+        # generator2: {"tgt": seq, "indices": i}
         read_iters = [r.read(dat[1], dat[0], dir_) for r, dat, dir_
                       in zip(readers, data, dirs)]
+
+        # tmp1 = next(read_iters[0])
+        # tmp2 = next(read_iters[1])
 
         # self.src_vocabs is used in collapse_copy_scores and Translator.py
         self.src_vocabs = []
         examples = []
+        # ex_dict = {"src": ..., "tgt", ..., "indices", n}
         for ex_dict in starmap(_join_dicts, zip(*read_iters)):
             if can_copy:
                 src_field = fields['src']
@@ -126,8 +132,14 @@ class Dataset(TorchtextDataset):
                 src_ex_vocab, ex_dict = _dynamic_dict(
                     ex_dict, src_field.base_field, tgt_field.base_field)
                 self.src_vocabs.append(src_ex_vocab)
+            # {{"src": [("src", Field)]}, {"tgt": [("tgt", Field)]}, 
+            # {"indices": [("indices", Field)]}}
             ex_fields = {k: [(k, v)] for k, v in fields.items() if
                          k in ex_dict}
+            # torchtext.data.example.Example
+            # ex.indices: int
+            # ex.src: [["word1", "word2", ...]], 长度为truncate_seq_length
+            # ex.tgt: [["word3", "word4", ...]]
             ex = Example.fromdict(ex_dict, ex_fields)
             examples.append(ex)
 

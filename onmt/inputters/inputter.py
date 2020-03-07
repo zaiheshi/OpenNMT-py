@@ -141,7 +141,8 @@ def get_fields(
     assert not dynamic_dict or src_data_type == 'text', \
         'it is not possible to use dynamic_dict with non-text input'
     fields = {}
-
+    # src端包含长度, tgt端不包含长度
+    # bos, eos只会出现在tgt端
     fields_getters = {"text": text_fields,
                       "img": image_fields,
                       "audio": audio_fields,
@@ -152,18 +153,18 @@ def get_fields(
                         "pad": pad, "bos": None, "eos": None,
                         "truncate": src_truncate,
                         "base_name": "src"}
+    # TextMultiField, 类似于Field, 但是可以处理特征域
     fields["src"] = fields_getters[src_data_type](**src_field_kwargs)
-
     tgt_field_kwargs = {"n_feats": n_tgt_feats,
                         "include_lengths": False,
                         "pad": pad, "bos": bos, "eos": eos,
                         "truncate": tgt_truncate,
                         "base_name": "tgt"}
     fields["tgt"] = fields_getters["text"](**tgt_field_kwargs)
-
+    # use_vocab, 数值化数据不需要, sequential为False不需要tokenize
     indices = Field(use_vocab=False, dtype=torch.long, sequential=False)
     fields["indices"] = indices
-
+    # dynamic_dict???
     if dynamic_dict:
         src_map = Field(
             use_vocab=False, dtype=torch.float,

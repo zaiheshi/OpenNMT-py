@@ -48,22 +48,29 @@ def process_one_shard(corpus_params, params):
          existing_fields, src_vocab, tgt_vocab = corpus_params
     i, (src_shard, tgt_shard, align_shard, maybe_id, filter_pred) = params
     # create one counter per shard
+    # 用来统计单词出现次数
+    # sub_sub_counter["src"] 
+    # sub_sub_counter["tgt"] 
     sub_sub_counter = defaultdict(Counter)
     assert len(src_shard) == len(tgt_shard)
     logger.info("Building shard %d." % i)
-
+    # opt.src_dir = ""
     src_data = {"reader": src_reader, "data": src_shard, "dir": opt.src_dir}
     tgt_data = {"reader": tgt_reader, "data": tgt_shard, "dir": None}
     align_data = {"reader": align_reader, "data": align_shard, "dir": None}
+    # _data = [("src": src_shard), ("tgt": tgt_shard)]
+    # _dir = ['', None]
     _readers, _data, _dir = inputters.Dataset.config(
         [('src', src_data), ('tgt', tgt_data), ('align', align_data)])
-
     dataset = inputters.Dataset(
         fields, readers=_readers, data=_data, dirs=_dir,
         sort_key=inputters.str2sortkey[opt.data_type],
         filter_pred=filter_pred
     )
     if corpus_type == "train" and existing_fields is None:
+        # ex.indices: int
+        # ex.src: [["word1", "word2", ...]], 长度为truncate_seq_length
+        # ex.tgt: [["word3", "word4", ...]]
         for ex in dataset.examples:
             for name, field in fields.items():
                 if ((opt.data_type == "audio") and (name == "src")):
@@ -131,21 +138,25 @@ def build_save_dataset(corpus_type, fields, src_reader, tgt_reader,
     assert corpus_type in ['train', 'valid']
 
     if corpus_type == 'train':
+        # defaultdict默认值字典
+        # Counter当key不存在时返回0
+        # 简言之, 默认counters[a][b] = 0
+        # 用来统计单词出现次数
         counters = defaultdict(Counter)
         srcs = opt.train_src
         tgts = opt.train_tgt
-        ids = opt.train_ids
-        aligns = opt.train_align
+        ids = opt.train_ids    # default: None
+        aligns = opt.train_align # None
     elif corpus_type == 'valid':
         counters = None
         srcs = [opt.valid_src]
         tgts = [opt.valid_tgt]
         ids = [None]
         aligns = [opt.valid_align]
-
+    # None, None, None
     src_vocab, tgt_vocab, existing_fields = maybe_load_vocab(
         corpus_type, counters, opt)
-
+    # []
     existing_shards = check_existing_pt_files(
         opt, corpus_type, ids, existing_fields)
 
@@ -173,6 +184,7 @@ def build_save_dataset(corpus_type, fields, src_reader, tgt_reader,
                                    "shards already exist"
                                    .format(maybe_id))
                     continue
+            # filter_valid = False
             if ((corpus_type == "train" or opt.filter_valid)
                     and tgt is not None):
                 filter_pred = partial(
@@ -182,13 +194,25 @@ def build_save_dataset(corpus_type, fields, src_reader, tgt_reader,
                     max_tgt_len=opt.tgt_seq_length)
             else:
                 filter_pred = None
+            # opt.shard_size 默认10000
+            # src_shards, tgt_shards均为迭代器
+            # 每次迭代, 返回一个list, 包含src/tgt中长度为shard_size行的二进制数据
             src_shards = split_corpus(src, opt.shard_size)
             tgt_shards = split_corpus(tgt, opt.shard_size)
+            # 每次迭代均为None
+            # maybe_id = None
             align_shards = split_corpus(maybe_align, opt.shard_size)
             for i, (ss, ts, a_s) in enumerate(
                     zip(src_shards, tgt_shards, align_shards)):
                 yield (i, (ss, ts, a_s, maybe_id, filter_pred))
 
+    # srcs:  ['train.src']
+    # tgts:  ['train.tgt]
+    # ids:   [None]
+    # aligns:[None]
+    # existing_shards: []
+    # existing_fields: None
+    # corpus_type: 'train'
     shard_iter = shard_iterator(srcs, tgts, ids, aligns, existing_shards,
                                 existing_fields, corpus_type, opt)
 
@@ -247,6 +271,8 @@ def preprocess(opt):
 
     src_nfeats = 0
     tgt_nfeats = 0
+    # train_src, train_tgt可以是多个文件
+    # 如果有特征 token1|feat1|feat2   token2|feat3|feat4 ...
     for src, tgt in zip(opt.train_src, opt.train_tgt):
         src_nfeats += count_features(src) if opt.data_type == 'text' \
             else 0
@@ -255,6 +281,9 @@ def preprocess(opt):
     logger.info(" * number of target features: %d." % tgt_nfeats)
 
     logger.info("Building `Fields` object...")
+    # train_align: src与tgt的词对齐文件, nargs = '+'
+    # bos与eos仅与tgt相关
+    # fields["src"], fields["tgt"], fields["indices"]
     fields = inputters.get_fields(
         opt.data_type,
         src_nfeats,
@@ -263,7 +292,7 @@ def preprocess(opt):
         with_align=opt.train_align[0] is not None,
         src_truncate=opt.src_seq_length_trunc,
         tgt_truncate=opt.tgt_seq_length_trunc)
-
+    # from_opt有什么用?
     src_reader = inputters.str2reader[opt.data_type].from_opt(opt)
     tgt_reader = inputters.str2reader["text"].from_opt(opt)
     align_reader = inputters.str2reader["text"].from_opt(opt)

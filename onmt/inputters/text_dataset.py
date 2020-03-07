@@ -31,6 +31,7 @@ class TextDataReader(DataReaderBase):
             sequences = DataReaderBase._read_file(sequences)
         for i, seq in enumerate(sequences):
             if isinstance(seq, six.binary_type):
+                # 二进制 转 utf-8
                 seq = seq.decode("utf-8")
             yield {side: seq, "indices": i}
 
@@ -184,7 +185,7 @@ def text_fields(**kwargs):
             truncate=truncate,
             feat_delim=feat_delim)
         use_len = i == 0 and include_lengths
-        feat = Field(
+        feat = Field(                  # torchtext.data.field.Field
             init_token=bos, eos_token=eos,
             pad_token=pad, tokenize=tokenize,
             include_lengths=use_len)

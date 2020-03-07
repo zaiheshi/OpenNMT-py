@@ -14,17 +14,20 @@ def split_corpus(path, shard_size, default=None):
     if path is not None:
         return _split_corpus(path, shard_size)
     else:
-        return repeat(default)
+        return repeat(default)   # 迭代器, 无穷尽返回default(此处None)
 
 
 def _split_corpus(path, shard_size):
     """Yield a `list` containing `shard_size` line of `path`.
     """
+    # 注意是二进制方式读取文件
     with open(path, "rb") as f:
         if shard_size <= 0:
             yield f.readlines()
         else:
             while True:
+                # islice(f, shard_size): 从f中选取shard_size大小返回迭代器, 如果shard_size超多f大小, 
+                # 返回全部值的迭代器, f只能迭代一次, 否则每次结果相同
                 shard = list(islice(f, shard_size))
                 if not shard:
                     break

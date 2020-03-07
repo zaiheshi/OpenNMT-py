@@ -1,10 +1,13 @@
-train_src           : /home/xwang/dhs/quora/data/train.src
-train_tgt           : /home/xwang/dhs/quora/data/train.tgt
-valid_src           : /home/xwang/dhs/quora/data/valid.src
-valid_tgt           : /home/xwang/dhs/quora/data/valid.tgt
-src_vocab_size      : 20000
-tgt_vocab_size      : 20000
+train_src           : /home/zaiheshi/code/OpenNMT-py/data/train.src  
+train_tgt           : /home/zaiheshi/code/OpenNMT-py/data/train.tgt
+valid_src           : /home/zaiheshi/code/OpenNMT-py/data/valid.src
+valid_tgt           : /home/zaiheshi/code/OpenNMT-py/data/valid.tgt
+src_vocab_size      : 35
+tgt_vocab_size      : 35
 src_seq_length_trunc: 20
 tgt_seq_length_trunc: 20
-save_data           : /home/xwang/dhs/quora/data/pg
+shard_size          : 50
+# log_file          : xxx
+# num_threads         : 10
+save_data           : /home/zaiheshi/code/OpenNMT-py/data/pg
 share_vocab         : 'true'
