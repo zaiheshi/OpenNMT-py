@@ -236,6 +236,10 @@ def build_save_dataset(corpus_type, fields, src_reader, tgt_reader,
                 opt.tgt_vocab_size, opt.tgt_words_min_frequency)
         else:
             fields = existing_fields
+        # fields['src'/'tgt'].base_field.vocab.freqs存储单词频率
+        # fields['src'/'tgt'].base_field.vocab.itos: int to string 
+        # fields['src'/'tgt'].base_field.vocab.stoi: string to int
+        # 如果share_vocab, 二者相同
         torch.save(fields, vocab_path)
 
 

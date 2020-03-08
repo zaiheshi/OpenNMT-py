@@ -333,6 +333,8 @@ def _build_field_vocab(field, counter, size_multiple=1, **kwargs):
         field.unk_token, field.pad_token, field.init_token, field.eos_token
     ]
     specials = [tok for tok in all_specials if tok is not None]
+    # 针对tgt: <unk>: 0, <blank>: 1, <s>: 2, </s> 3
+    # src没有<s>与</s>
     field.vocab = field.vocab_cls(counter, specials=specials, **kwargs)
     if size_multiple > 1:
         _pad_vocab_to_multiple(field.vocab, size_multiple)
@@ -383,6 +385,8 @@ def _build_fields_vocab(fields, counters, data_type, share_vocab,
             counters,
             build_fv_args,
             size_multiple=vocab_size_multiple if not share_vocab else 1)
+        # src与tgt词表大小与src词表大小相同
+        # 此时src_field.vovab == tgt_field.vocab
         if share_vocab:
             # `tgt_vocab_size` is ignored when sharing vocabularies
             logger.info(" * merging src and tgt vocab...")
