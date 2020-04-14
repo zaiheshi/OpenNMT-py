@@ -27,8 +27,10 @@ def build_embeddings(opt, text_field, for_encoder=True):
         text_field(TextMultiField): word and feats field.
         for_encoder(bool): build Embeddings for encoder or decoder?
     """
+    # 512
     emb_dim = opt.src_word_vec_size if for_encoder else opt.tgt_word_vec_size
 
+    # model_type = "text"
     if opt.model_type == "vec" and for_encoder:
         return VecEmbedding(
             opt.feat_vec_size,
@@ -39,11 +41,13 @@ def build_embeddings(opt, text_field, for_encoder=True):
         )
 
     pad_indices = [f.vocab.stoi[f.pad_token] for _, f in text_field]
+    # word_padding_idx = 1
     word_padding_idx, feat_pad_indices = pad_indices[0], pad_indices[1:]
-
+    # [vocab_size + 4]
     num_embs = [len(f.vocab) for _, f in text_field]
+    # num_word_embeddings = vocab_size + 4
     num_word_embeddings, num_feat_embeddings = num_embs[0], num_embs[1:]
-
+    # False
     fix_word_vecs = opt.fix_word_vecs_enc if for_encoder \
         else opt.fix_word_vecs_dec
 
@@ -157,7 +161,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         # src/tgt vocab should be the same if `-share_vocab` is specified.
         assert src_field.base_field.vocab == tgt_field.base_field.vocab, \
             "preprocess with -share_vocab if you use share_embeddings"
-
+        # src tgt共享权重
         tgt_emb.word_lut.weight = src_emb.word_lut.weight
 
     decoder = build_decoder(model_opt, tgt_emb)

@@ -23,12 +23,17 @@ class PositionalEncoding(nn.Module):
         if dim % 2 != 0:
             raise ValueError("Cannot use sin/cos positional encoding with "
                              "odd dim (got dim={:d})".format(dim))
+        # max_len * dim,  forward中是seq_len * dim, 加到词向量中
         pe = torch.zeros(max_len, dim)
+        # size: (max_len, 1), 句子长度
         position = torch.arange(0, max_len).unsqueeze(1)
+        # 1 / 10000^(2i / d_model)
         div_term = torch.exp((torch.arange(0, dim, 2, dtype=torch.float) *
                              -(math.log(10000.0) / dim)))
+        # position.float() * div_term : max_len * dim
         pe[:, 0::2] = torch.sin(position.float() * div_term)
         pe[:, 1::2] = torch.cos(position.float() * div_term)
+        # (max_len, 1, dim)
         pe = pe.unsqueeze(1)
         super(PositionalEncoding, self).__init__()
         self.register_buffer('pe', pe)
@@ -47,6 +52,7 @@ class PositionalEncoding(nn.Module):
 
         emb = emb * math.sqrt(self.dim)
         if step is None:
+            # 多维切片用,隔开  此处第一维截断
             emb = emb + self.pe[:emb.size(0)]
         else:
             emb = emb + self.pe[step]
@@ -168,8 +174,10 @@ class Embeddings(nn.Module):
         # The embedding matrix look-up tables. The first look-up table
         # is for words. Subsequent ones are for features, if any exist.
         emb_params = zip(vocab_sizes, emb_dims, pad_indices)
+        # embeddings = [nn.Embedding(vocab, dim, pad, sparse)]
         embeddings = [nn.Embedding(vocab, dim, padding_idx=pad, sparse=sparse)
                       for vocab, dim, pad in emb_params]
+        # feat_merge = "concat"
         emb_luts = Elementwise(feat_merge, embeddings)
 
         # The final output size of word + feature vectors. This can vary
@@ -232,6 +240,7 @@ class Embeddings(nn.Module):
     @property
     def word_lut(self):
         """Word look-up table."""
+        # 返回nn.Embedding
         return self.make_embedding[0][0]
 
     @property
@@ -269,6 +278,7 @@ class Embeddings(nn.Module):
 
         if self.position_encoding:
             for i, module in enumerate(self.make_embedding._modules.values()):
+                # 最后一个模块是位置编码
                 if i == len(self.make_embedding._modules.values()) - 1:
                     source = module(source, step=step)
                 else:

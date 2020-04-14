@@ -165,6 +165,7 @@ def get_fields(
     indices = Field(use_vocab=False, dtype=torch.long, sequential=False)
     fields["indices"] = indices
     # dynamic_dict???
+    # 暂时先不看
     if dynamic_dict:
         src_map = Field(
             use_vocab=False, dtype=torch.float,
@@ -178,7 +179,7 @@ def get_fields(
             use_vocab=False, dtype=torch.long,
             postprocessing=make_tgt, sequential=False)
         fields["alignment"] = align
-
+    # false
     if with_align:
         word_align = AlignField()
         fields["align"] = word_align
@@ -781,6 +782,7 @@ class DatasetLazyIter(object):
         paths = self._paths
         if self.is_train and self.repeat:
             # Cycle through the shards indefinitely.
+            # 无穷迭代
             paths = cycle(paths)
         for path in paths:
             for batch in self._iter_dataset(path):

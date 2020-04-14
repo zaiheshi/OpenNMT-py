@@ -73,12 +73,13 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
     for side in ['src', 'tgt']:
         f = fields[side]
         try:
+            # 需满足self.xxx = [(key, value)]与 __getitem__方法
             f_iter = iter(f)
         except TypeError:
             f_iter = [(side, f)]
         for sn, sf in f_iter:
             if sf.use_vocab:
-                logger.info(' * %s vocab size = %d' % (sn, len(sf.vocab)))
+                logger.info(' * %s vocab size = %d' % (sn, len(sf.vocab)))   # __len__
 
     # Build model.
     model = build_model(model_opt, opt, fields, checkpoint)

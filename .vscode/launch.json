@@ -13,7 +13,7 @@
             "subProcess": true,
             "args":[
              "--config",
-             "config/config_preprocess"   
+             "config/config_train"   
             ]
         }
     ]

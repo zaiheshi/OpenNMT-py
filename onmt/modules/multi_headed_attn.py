@@ -51,12 +51,14 @@ class MultiHeadedAttention(nn.Module):
     def __init__(self, head_count, model_dim, dropout=0.1,
                  max_relative_positions=0):
         assert model_dim % head_count == 0
+        # 64
         self.dim_per_head = model_dim // head_count
         self.model_dim = model_dim
 
         super(MultiHeadedAttention, self).__init__()
+        # 8
         self.head_count = head_count
-
+        # (512, 8*64)
         self.linear_keys = nn.Linear(model_dim,
                                      head_count * self.dim_per_head)
         self.linear_values = nn.Linear(model_dim,
@@ -65,8 +67,9 @@ class MultiHeadedAttention(nn.Module):
                                       head_count * self.dim_per_head)
         self.softmax = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
+        # (512, 512)
         self.final_linear = nn.Linear(model_dim, model_dim)
-
+        # 0
         self.max_relative_positions = max_relative_positions
 
         if max_relative_positions > 0:

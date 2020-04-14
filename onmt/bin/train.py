@@ -40,6 +40,7 @@ def train(opt):
         fields = load_old_vocab(
             vocab, opt.model_type, dynamic_dict=opt.copy_attn)
     else:
+        # 走这个分支
         fields = vocab
 
     if len(opt.data_ids) > 1:
@@ -87,6 +88,7 @@ def train(opt):
     elif nb_gpu == 1:  # case 1 GPU only
         single_main(opt, 0)
     else:   # case only CPU
+        # 上面的代码似乎用不到
         single_main(opt, -1)
 
 

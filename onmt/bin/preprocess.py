@@ -58,6 +58,8 @@ def process_one_shard(corpus_params, params):
     src_data = {"reader": src_reader, "data": src_shard, "dir": opt.src_dir}
     tgt_data = {"reader": tgt_reader, "data": tgt_shard, "dir": None}
     align_data = {"reader": align_reader, "data": align_shard, "dir": None}
+    # 到目前为止， 只是对数据进行截断处理
+    # _readers = [src_reader, tgt_reader]
     # _data = [("src": src_shard), ("tgt": tgt_shard)]
     # _dir = ['', None]
     _readers, _data, _dir = inputters.Dataset.config(
@@ -296,7 +298,7 @@ def preprocess(opt):
         with_align=opt.train_align[0] is not None,
         src_truncate=opt.src_seq_length_trunc,
         tgt_truncate=opt.tgt_seq_length_trunc)
-    # from_opt有什么用?
+    # from_opt参数没有用处，仅仅是一个构造函数
     src_reader = inputters.str2reader[opt.data_type].from_opt(opt)
     tgt_reader = inputters.str2reader["text"].from_opt(opt)
     align_reader = inputters.str2reader["text"].from_opt(opt)

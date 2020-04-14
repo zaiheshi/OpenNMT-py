@@ -63,6 +63,7 @@ def _feature_tokenize(
     """
 
     tokens = string.split(tok_delim)
+    # 在此处进行句子截断
     if truncate is not None:
         tokens = tokens[:truncate]
     if feat_delim is not None:
@@ -179,11 +180,13 @@ def text_fields(**kwargs):
     feat_delim = u"￨" if n_feats > 0 else None
     for i in range(n_feats + 1):
         name = base_name + "_feat_" + str(i - 1) if i > 0 else base_name
+        # feat_delim = None
         tokenize = partial(
             _feature_tokenize,
             layer=i,
             truncate=truncate,
             feat_delim=feat_delim)
+        # src: include_lengths = true, tgt: include_lengths = false
         use_len = i == 0 and include_lengths
         feat = Field(                  # torchtext.data.field.Field
             init_token=bos, eos_token=eos,
