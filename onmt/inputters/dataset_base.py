@@ -112,8 +112,8 @@ class Dataset(TorchtextDataset):
         self.sort_key = sort_key
         can_copy = 'src_map' in fields and 'alignment' in fields
         # read_iters: [generator1, generator2] 
-        # generator1: {"src": seq, "indices": i}
-        # generator2: {"tgt": seq, "indices": i}
+        # generator1: {"src": utf-8-sentence, "indices": i}
+        # generator2: {"tgt": utf-8-sentence, "indices": i}
         read_iters = [r.read(dat[1], dat[0], dir_) for r, dat, dir_
                       in zip(readers, data, dirs)]
 
@@ -123,7 +123,7 @@ class Dataset(TorchtextDataset):
         # self.src_vocabs is used in collapse_copy_scores and Translator.py
         self.src_vocabs = []
         examples = []
-        # ex_dict = {"src": ..., "tgt", ..., "indices", n}
+        # ex_dict = {"src": “...”, "tgt", “...,” "indices", n}
         for ex_dict in starmap(_join_dicts, zip(*read_iters)):
             if can_copy:
                 src_field = fields['src']
@@ -132,7 +132,7 @@ class Dataset(TorchtextDataset):
                 src_ex_vocab, ex_dict = _dynamic_dict(
                     ex_dict, src_field.base_field, tgt_field.base_field)
                 self.src_vocabs.append(src_ex_vocab)
-            # {{"src": [("src", Field)]}, {"tgt": [("tgt", Field)]}, 
+            # {{"src": [("src", TextMuitiField)]}, {"tgt": [("tgt", TextMultiField)]}, 
             # {"indices": [("indices", Field)]}}
             ex_fields = {k: [(k, v)] for k, v in fields.items() if
                          k in ex_dict}
@@ -140,15 +140,25 @@ class Dataset(TorchtextDataset):
             # ex.indices: int
             # ex.src: [["word1", "word2", ...]], 长度为truncate_seq_length
             # ex.tgt: [["word3", "word4", ...]]
+            # 之所以是[[]]是因为， TextMultiField里的preprocessing函数
+
+            # 此处src/tgt调用field.preprocessing， 使用的是自定义的(第一步)tokenize, 即对句子进行截断
+            # indices调用field.preprocessing, 不进行处理，返回自身即int数值
             ex = Example.fromdict(ex_dict, ex_fields)
             examples.append(ex)
 
         # fields needs to have only keys that examples have as attrs
+        # fields = [("src", TextMuitiField), ("tgt", TextMuitlField), ("indices", Field)]
         fields = []
         for _, nf_list in ex_fields.items():
             assert len(nf_list) == 1
             fields.append(nf_list[0])
+        # 在父类TorchtextDataset构造函数中进行（第二步)filter_pred， 即
+        #  确保 1 <= src.length <= opt.src_seq_length,
+        #      1 <= tgt.length <= opt.tgt_seq_length
 
+        # self.example = list[filter(filter_pred, examples)]
+        # self.fields = {"src": TextMuitiField, "tgt": TextMuitlField, "indices": Field}
         super(Dataset, self).__init__(examples, fields, filter_pred)
 
     def __getattr__(self, attr):

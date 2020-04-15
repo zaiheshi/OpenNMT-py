@@ -1,0 +1,47 @@
+1. field["src"]: 
+
+eos_token = None
+fix_length = None
+include_length = True
+init_token = None
+lower = False
+pad_first = False
+pad_token = "<blank>"
+postprocessing = preprocessing = None
+sequential = True
+stop_words = None
+tokenize = self write
+truncate_first = False
+unk_token = "<unk>"
+use_vocab = True
+
+2. field["tgt"]
+
+eos_token = "</s>"
+fix_length = None
+include_length = True
+init_token = "<s>"
+lower = False
+pad_first = False
+pad_token = "<blank>"
+postprocessing = preprocessing = None
+sequential = True
+stop_words = None
+tokenize = self write
+truncate_first = False
+unk_token = "<unk>"
+use_vocab = True
+
+3. field["indices"]
+
+use_vocab=False
+dtype=torch.long
+sequential=False
+
+
+4. field["src"/"tgt"]都为TextMultiField对象, field["indices"]为Field对象
+
+a = TextMultiField()
+a[0]得到(name, Field), name为"src"/"tgt"
+a.base_field = Field
+process, preprocess用的是Field中的process, preprocess

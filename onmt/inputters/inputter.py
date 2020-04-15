@@ -336,6 +336,9 @@ def _build_field_vocab(field, counter, size_multiple=1, **kwargs):
     specials = [tok for tok in all_specials if tok is not None]
     # 针对tgt: <unk>: 0, <blank>: 1, <s>: 2, </s> 3
     # src没有<s>与</s>
+    # field.vocab.itos
+    # field.vocab.stoi
+    # 似乎到目前为止数据并没有pad
     field.vocab = field.vocab_cls(counter, specials=specials, **kwargs)
     if size_multiple > 1:
         _pad_vocab_to_multiple(field.vocab, size_multiple)
@@ -355,6 +358,7 @@ def _load_vocab(vocab_path, name, counters, min_freq):
 
 def _build_fv_from_multifield(multifield, counters, build_fv_args,
                               size_multiple=1):
+    # 可以遍历是因为TextMultiField的__getitem__方法
     for name, field in multifield:
         _build_field_vocab(
             field,
@@ -391,6 +395,7 @@ def _build_fields_vocab(fields, counters, data_type, share_vocab,
         if share_vocab:
             # `tgt_vocab_size` is ignored when sharing vocabularies
             logger.info(" * merging src and tgt vocab...")
+            # src_field/tgt_field.itos/stoi
             src_field = src_multifield.base_field
             tgt_field = tgt_multifield.base_field
             _merge_field_vocabs(

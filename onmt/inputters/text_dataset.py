@@ -29,6 +29,7 @@ class TextDataReader(DataReaderBase):
             "Cannot use _dir with TextDataReader."
         if isinstance(sequences, str):
             sequences = DataReaderBase._read_file(sequences)
+        # sequences为list， 每个元素为二进制句子
         for i, seq in enumerate(sequences):
             if isinstance(seq, six.binary_type):
                 # 二进制 转 utf-8
@@ -148,7 +149,7 @@ class TextMultiField(RawField):
         """
 
         return [f.preprocess(x) for _, f in self.fields]
-
+    # 可以instance[item]访问, 若访问只能instance[0]
     def __getitem__(self, item):
         return self.fields[item]
 

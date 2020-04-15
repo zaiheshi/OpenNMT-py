@@ -50,7 +50,7 @@ def process_one_shard(corpus_params, params):
     # create one counter per shard
     # 用来统计单词出现次数
     # sub_sub_counter["src"] 
-    # sub_sub_counter["tgt"] 
+    # sub_sub_counter["tgt"]均为字典 
     sub_sub_counter = defaultdict(Counter)
     assert len(src_shard) == len(tgt_shard)
     logger.info("Building shard %d." % i)
@@ -58,7 +58,7 @@ def process_one_shard(corpus_params, params):
     src_data = {"reader": src_reader, "data": src_shard, "dir": opt.src_dir}
     tgt_data = {"reader": tgt_reader, "data": tgt_shard, "dir": None}
     align_data = {"reader": align_reader, "data": align_shard, "dir": None}
-    # 到目前为止， 只是对数据进行截断处理
+    # 到目前为止， 只是读入二进制数据， 并未处理
     # _readers = [src_reader, tgt_reader]
     # _data = [("src": src_shard), ("tgt": tgt_shard)]
     # _dir = ['', None]
@@ -71,8 +71,9 @@ def process_one_shard(corpus_params, params):
     )
     if corpus_type == "train" and existing_fields is None:
         # ex.indices: int
-        # ex.src: [["word1", "word2", ...]], 长度为truncate_seq_length
+        # ex.src: [["word1", "word2", ...]], 长度为truncate_seq_length, 经过filter_pred
         # ex.tgt: [["word3", "word4", ...]]
+        # 以下统计此shard中单词次数
         for ex in dataset.examples:
             for name, field in fields.items():
                 if ((opt.data_type == "audio") and (name == "src")):
@@ -83,6 +84,7 @@ def process_one_shard(corpus_params, params):
                     f_iter = [(name, field)]
                     all_data = [getattr(ex, name, None)]
                 else:
+                    # 走这里， [[]]
                     all_data = getattr(ex, name)
                 for (sub_n, sub_f), fd in zip(
                         f_iter, all_data):
@@ -104,6 +106,7 @@ def process_one_shard(corpus_params, params):
     logger.info(" * saving %sth %s data shard to %s."
                 % (i, shard_base, data_path))
 
+    # 把此dataset中的数据保存下来， 最重要的是dataset.examples(处理后的数据), dataset.fields
     dataset.save(data_path)
 
     del dataset.examples
@@ -144,6 +147,8 @@ def build_save_dataset(corpus_type, fields, src_reader, tgt_reader,
         # Counter当key不存在时返回0
         # 简言之, 默认counters[a][b] = 0
         # 用来统计单词出现次数
+        # counters["src"]统计src中单词出现次数
+        # counters["tgt"]统计tgt中单词出现次数
         counters = defaultdict(Counter)
         srcs = opt.train_src
         tgts = opt.train_tgt
@@ -186,9 +191,10 @@ def build_save_dataset(corpus_type, fields, src_reader, tgt_reader,
                                    "shards already exist"
                                    .format(maybe_id))
                     continue
-            # filter_valid = False
+            # filter_valid = False, use_src_len = true
             if ((corpus_type == "train" or opt.filter_valid)
                     and tgt is not None):
+                # 对每一行进行过滤
                 filter_pred = partial(
                     inputters.filter_example,
                     use_src_len=opt.data_type == "text",
@@ -215,6 +221,10 @@ def build_save_dataset(corpus_type, fields, src_reader, tgt_reader,
     # existing_shards: []
     # existing_fields: None
     # corpus_type: 'train'
+
+    # shard_iter为迭代器， next(shard_iter)如下
+    # (shard_id, ([shard_size src sentence binary], [shard_size tgt sentence binary], 
+    # None, None, function))
     shard_iter = shard_iterator(srcs, tgts, ids, aligns, existing_shards,
                                 existing_fields, corpus_type, opt)
 
