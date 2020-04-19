@@ -52,18 +52,18 @@ def build_embeddings(opt, text_field, for_encoder=True):
         else opt.fix_word_vecs_dec
 
     emb = Embeddings(
-        word_vec_size=emb_dim,
-        position_encoding=opt.position_encoding,
-        feat_merge=opt.feat_merge,
+        word_vec_size=emb_dim,                                # 512
+        position_encoding=opt.position_encoding,              # True
+        feat_merge=opt.feat_merge,                            # 
         feat_vec_exponent=opt.feat_vec_exponent,
         feat_vec_size=opt.feat_vec_size,
         dropout=opt.dropout[0] if type(opt.dropout) is list else opt.dropout,
-        word_padding_idx=word_padding_idx,
+        word_padding_idx=word_padding_idx,                    # 1
         feat_padding_idx=feat_pad_indices,
-        word_vocab_size=num_word_embeddings,
+        word_vocab_size=num_word_embeddings,                  
         feat_vocab_sizes=num_feat_embeddings,
         sparse=opt.optim == "sparseadam",
-        fix_word_vecs=fix_word_vecs
+        fix_word_vecs=fix_word_vecs                           # False
     )
     return emb
 
@@ -144,6 +144,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
 
     # Build embeddings.
     if model_opt.model_type == "text" or model_opt.model_type == "vec":
+        # TextMultiField
         src_field = fields["src"]
         src_emb = build_embeddings(model_opt, src_field)
     else:

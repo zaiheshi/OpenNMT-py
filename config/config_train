@@ -1,22 +1,22 @@
 data: /home/zaiheshi/code/OpenNMT-py/data/pg
 save_model: /home/zaiheshi/code/OpenNMT-py/model/pg-model
 save_checkpoint_steps: 5000
-keep_checkpoint: 40
+keep_checkpoint: 4000
 seed: 3435
 train_steps: 400000
 valid_steps: 2500
 warmup_steps: 8000
-report_every: 100
+report_every: 10
 
 decoder_type: transformer
 encoder_type: transformer
-word_vec_size: 512
-rnn_size: 512
-layers: 6
-transformer_ff: 2048
-heads: 8
+word_vec_size: 50
+rnn_size: 50
+layers: 2
+transformer_ff: 64
+heads: 2
 
-accum_count: 1
+accum_count: 2
 optim: adam
 adam_beta1: 0.9
 adam_beta2: 0.998
@@ -24,9 +24,9 @@ decay_method: noam
 learning_rate: 2.0
 max_grad_norm: 0.0
 
-batch_size: 4096
-batch_type: tokens
-normalization: tokens
+batch_size: 20
+batch_type: sents
+normalization: sents
 dropout: 0.1
 label_smoothing: 0.1
 

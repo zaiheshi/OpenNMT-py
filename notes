@@ -19,7 +19,7 @@ use_vocab = True
 
 eos_token = "</s>"
 fix_length = None
-include_length = True
+include_length = True, 不知道在哪被改成False了
 init_token = "<s>"
 lower = False
 pad_first = False
@@ -41,7 +41,53 @@ sequential=False
 
 4. field["src"/"tgt"]都为TextMultiField对象, field["indices"]为Field对象
 
-a = TextMultiField()
+a = TextMultiField(), a可迭代
 a[0]得到(name, Field), name为"src"/"tgt"
 a.base_field = Field
+a.base_field.vocab.itos/stoi是词表
+
 process, preprocess用的是Field中的process, preprocess
+preprocess用的是自定义的tokenize函数，截断至指定长度
+
+dataset主要两个dataset.examples, dataset.fields
+
+dataset类进一步对数据过滤(1 <= src/tgt.length <= max_length)
+dataset.examples类型为list, 每一个元素类型是Example(ex)
+
+ex.indices: int
+ex.src: [["word1", "word2", ...]]
+ex.tgt: [["word3", "word4", ...]]
+
+dataset.fields = {"src": TextMuitiField, "tgt": TextMuitlField, "indices": Field}
+
+
+<unk>: 0, <blank>: 1, <s>: 2, </s>: 3
+
+
+
+
+
+
+
+
+# torch.zeros(dim0, dim1, dim2...)->tensor
+创建全0tensor, 维度为dim0*dim1*dim2...
+
+# tensor.size()获取维度列表
+
+# torch.squeeze(input, dim=None, out=None)->tensor, 共享内存
+如果dim维度为大小1, 压缩掉该维度，否则不变
+默认压缩所有为1的维度
+
+# torch.unsqueeze与squeeze相反
+
+# torch.split(tensor, split_size_or_sections, dim=0)->tuple{tensor}, 共享内存
+沿着dim维度把tensor分为n份， 每份大小为split_size_or_sections
+
+# cycle(iter)无穷迭代 
+
+# torch.stack(tensors, dim = 0) -> tensor
+suppose: tensors = (tensor1, tensor2, ...), tensorN.size() = a * b
+torch.stack(tensors, 2).size() = a * b * 2
+torch.stack(tensors, 1).size() = a * 2 * b
+torch.stack(tensors, 0).size() = 2 * a * b

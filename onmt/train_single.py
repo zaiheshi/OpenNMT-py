@@ -44,6 +44,7 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
     # at this point.
     configure_process(opt, device_id)
     init_logger(opt.log_file)
+    # accum_count累加梯度， accum_steps应该用不到
     assert len(opt.accum_count) == len(opt.accum_steps), \
         'Number of accum_count values must match number of accum_steps'
     # Load checkpoint if we resume from a previous training.
@@ -67,21 +68,26 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
         fields = load_old_vocab(
             vocab, opt.model_type, dynamic_dict=opt.copy_attn)
     else:
+        # 走该分支
         fields = vocab
 
     # Report src and tgt vocab sizes, including for features
+    # TextMultiField.base
     for side in ['src', 'tgt']:
         f = fields[side]
         try:
-            # 需满足self.xxx = [(key, value)]与 __getitem__方法
+            # self.xxx = [(key, value)]与 __getitem__(self, key)方法(返回self.xxx[key]), 可迭代
             f_iter = iter(f)
         except TypeError:
             f_iter = [(side, f)]
         for sn, sf in f_iter:
+            # src/tgt: True, indices: False
             if sf.use_vocab:
                 logger.info(' * %s vocab size = %d' % (sn, len(sf.vocab)))   # __len__
 
     # Build model.
+    # model_opt == opt: True
+    # checkpoint = None
     model = build_model(model_opt, opt, fields, checkpoint)
     n_params, enc, dec = _tally_parameters(model)
     logger.info('encoder: %d' % enc)
@@ -108,8 +114,13 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
         else:
             if opt.data_ids[0] is not None:
                 shard_base = "train_" + opt.data_ids[0]
+            # 走该分支
             else:
                 shard_base = "train"
+            # for it in train_iter, it 类型为 torchtext.data.batch.Batch
+            # it.src[0]: seq*batch_size*1, it.src[1]: batch_size
+            # it.tgt: seq*batch_size*1
+            # it.indices: batch_size
             train_iter = build_dataset_iter(shard_base, fields, opt)
 
     else:

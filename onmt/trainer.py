@@ -36,15 +36,25 @@ def build_trainer(opt, device_id, model, fields, optim, model_saver=None):
     valid_loss = onmt.utils.loss.build_loss_compute(
         model, tgt_field, opt, train=False)
 
+    # 0
     trunc_size = opt.truncated_decoder  # Badly named...
+    # 2
     shard_size = opt.max_generator_batches if opt.model_dtype == 'fp32' else 0
+    # tokens
     norm_method = opt.normalization
+    # 1
     accum_count = opt.accum_count
+    # [0]
     accum_steps = opt.accum_steps
+    # 1
     n_gpu = opt.world_size
+    # 0
     average_decay = opt.average_decay
+    # 1
     average_every = opt.average_every
+    # 0.1
     dropout = opt.dropout
+    # [0]
     dropout_steps = opt.dropout_steps
     if device_id >= 0:
         gpu_rank = opt.gpu_ranks[device_id]
@@ -113,25 +123,25 @@ class Trainer(object):
         self.train_loss = train_loss
         self.valid_loss = valid_loss
         self.optim = optim
-        self.trunc_size = trunc_size
+        self.trunc_size = trunc_size       # 0
         self.shard_size = shard_size
-        self.norm_method = norm_method
-        self.accum_count_l = accum_count
-        self.accum_count = accum_count[0]
-        self.accum_steps = accum_steps
+        self.norm_method = norm_method     # 先看看"sents"
+        self.accum_count_l = accum_count   # [2]
+        self.accum_count = accum_count[0]  # config_train里设置为2
+        self.accum_steps = accum_steps     # [0]
         self.n_gpu = n_gpu
         self.gpu_rank = gpu_rank
         self.gpu_verbose_level = gpu_verbose_level
         self.report_manager = report_manager
-        self.with_align = with_align
+        self.with_align = with_align       # False
         self.model_saver = model_saver
-        self.average_decay = average_decay
+        self.average_decay = average_decay # 0
         self.moving_average = None
-        self.average_every = average_every
-        self.model_dtype = model_dtype
-        self.earlystopper = earlystopper
-        self.dropout = dropout
-        self.dropout_steps = dropout_steps
+        self.average_every = average_every # 1
+        self.model_dtype = model_dtype     # "fp32"
+        self.earlystopper = earlystopper   # None
+        self.dropout = dropout             # [0.1]
+        self.dropout_steps = dropout_steps # [0]
 
         for i in range(len(self.accum_count_l)):
             assert self.accum_count_l[i] > 0
@@ -159,6 +169,8 @@ class Trainer(object):
     def _accum_batches(self, iterator):
         batches = []
         normalization = 0
+        # self.optim.training_step = 1
+        # equal as before, 2
         self.accum_count = self._accum_count(self.optim.training_step)
         for batch in iterator:
             batches.append(batch)
@@ -224,7 +236,7 @@ class Trainer(object):
         for i, (batches, normalization) in enumerate(
                 self._accum_batches(train_iter)):
             step = self.optim.training_step
-            # UPDATE DROPOUT
+            # UPDATE DROPOUT, 以目前参数来说， 不会更新
             self._maybe_update_dropout(step)
 
             if self.gpu_verbose_level > 1:
@@ -349,10 +361,11 @@ class Trainer(object):
                 else (batch.src, None)
             if src_lengths is not None:
                 report_stats.n_src_words += src_lengths.sum().item()
-
+            # seq * batch_size * 1
             tgt_outer = batch.tgt
 
             bptt = False
+            # 循环只进行一次
             for j in range(0, target_size-1, trunc_size):
                 # 1. Create truncated target.
                 tgt = tgt_outer[j: j + trunc_size]
@@ -360,7 +373,9 @@ class Trainer(object):
                 # 2. F-prop all but generator.
                 if self.accum_count == 1:
                     self.optim.zero_grad()
-
+                # src: seq_src * bz * 1
+                # tgt: seq_tgt * bz * 1
+                # src_lengths: bz
                 outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt,
                                             with_align=self.with_align)
                 bptt = True

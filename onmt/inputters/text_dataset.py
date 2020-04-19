@@ -119,8 +119,8 @@ class TextMultiField(RawField):
                 and have shape ``(batch_size,)``.
         """
 
-        # batch (list(list(list))): batch_size x len(self.fields) x seq_len
-        batch_by_feat = list(zip(*batch))
+
+        batch_by_feat = list(zip(*batch))        # list(list(string))
         base_data = self.base_field.process(batch_by_feat[0], device=device)
         if self.base_field.include_lengths:
             # lengths: batch_size

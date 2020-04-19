@@ -581,16 +581,18 @@ def batch_iter(data, batch_size, batch_size_fn=None, batch_size_multiple=1):
 
 def _pool(data, batch_size, batch_size_fn, batch_size_multiple,
           sort_key, random_shuffler, pool_factor):
+    # p: list of ex, [ex1, ex2, ...], 长度为batch_size * pool_factor.
     for p in torchtext.data.batch(
             data, batch_size * pool_factor,
-            batch_size_fn=batch_size_fn):
+             batch_size_fn=batch_size_fn):
+        # p_batch [batch1, batch2, ...], batch_n为list[ex1, ex2, ..., ex_batch_size]
         p_batch = list(batch_iter(
             sorted(p, key=sort_key),
             batch_size,
             batch_size_fn=batch_size_fn,
             batch_size_multiple=batch_size_multiple))
         for b in random_shuffler(p_batch):
-            yield b
+            yield b        # b为list, 元素为ex， 长度为batch_size
 
 
 class OrderedIterator(torchtext.data.Iterator):
@@ -603,20 +605,25 @@ class OrderedIterator(torchtext.data.Iterator):
                  yield_raw_example=False,
                  **kwargs):
         super(OrderedIterator, self).__init__(dataset, batch_size, **kwargs)
+        # 1
         self.batch_size_multiple = batch_size_multiple
+        # False
         self.yield_raw_example = yield_raw_example
+        # dataset = torch.load(path)， dataset.exapmles, dataset.fields
         self.dataset = dataset
-        self.pool_factor = pool_factor
+        self.pool_factor = pool_factor          # 8192
 
     def create_batches(self):
         if self.train:
-            if self.yield_raw_example:
+            if self.yield_raw_example:       # False
                 self.batches = batch_iter(
                     self.data(),
                     1,
                     batch_size_fn=None,
                     batch_size_multiple=1)
             else:
+                # self.batches为迭代器, 每次迭代返回b
+                # b为list, 元素类型为ex, 长度为batch_size, shuffle already.
                 self.batches = _pool(
                     self.data(),
                     self.batch_size,
@@ -642,12 +649,14 @@ class OrderedIterator(torchtext.data.Iterator):
         """
         while True:
             self.init_epoch()
+            # 为list, 元素类型为ex, 长度为batch_size, shuffle already.
             for idx, minibatch in enumerate(self.batches):
                 # fast-forward if loaded from state
                 if self._iterations_this_epoch > idx:
                     continue
                 self.iterations += 1
                 self._iterations_this_epoch += 1
+                # True
                 if self.sort_within_batch:
                     # NOTE: `rnn.pack_padded_sequence` requires that a
                     # minibatch be sorted by decreasing order, which
@@ -656,9 +665,24 @@ class OrderedIterator(torchtext.data.Iterator):
                         minibatch.reverse()
                     else:
                         minibatch.sort(key=self.sort_key, reverse=True)
-                if self.yield_raw_example:
+                if self.yield_raw_example:          # False
                     yield minibatch[0]
                 else:
+                    # Batch.src: (tensor1, tensor2)
+                    # tensor1大小为seq_len*batch_size*1
+                    # tensor2大小为batch_size, 每个元素表示每句话的长度(不包括填充字符与<s>, </s>)
+                    # 填充字符在</s>后面
+                    # Batch.tgt: tensor3, tgt包含<s>2 , </s>3
+                    # tensor3大小为seq_len* batch_size*1
+                    
+                    # Batch.indices: tensor4
+                    # tensor4大小为batch_size, 代表每句话的原始索引， 因为shuffle，所以是乱序
+
+                    # is_target全部为False
+                    # a.input_fields = ["src", "tgt", "indices"]
+                    # a.target_fields =[]
+
+                    # 最终generator产生(Batch.src, Batch.tgt, Batch.indices)
                     yield torchtext.data.Batch(
                         minibatch,
                         self.dataset,
@@ -741,23 +765,23 @@ class DatasetLazyIter(object):
     def __init__(self, dataset_paths, fields, batch_size, batch_size_fn,
                  batch_size_multiple, device, is_train, pool_factor,
                  repeat=True, num_batches_multiple=1, yield_raw_example=False):
-        self._paths = dataset_paths
-        self.fields = fields
+        self._paths = dataset_paths  # list of corpus path1
+        self.fields = fields      
         self.batch_size = batch_size
         self.batch_size_fn = batch_size_fn
-        self.batch_size_multiple = batch_size_multiple
+        self.batch_size_multiple = batch_size_multiple   # 1
         self.device = device
         self.is_train = is_train
-        self.repeat = repeat
-        self.num_batches_multiple = num_batches_multiple
-        self.yield_raw_example = yield_raw_example
-        self.pool_factor = pool_factor
+        self.repeat = repeat   # TRue
+        self.num_batches_multiple = num_batches_multiple    # 1
+        self.yield_raw_example = yield_raw_example         # False
+        self.pool_factor = pool_factor                     # 8192
 
     def _iter_dataset(self, path):
-        logger.info('Loading dataset from %s' % path)
+        logger.info('Loading dataset from %s' % path)           # path为文件名
         cur_dataset = torch.load(path)
         logger.info('number of examples: %d' % len(cur_dataset))
-        cur_dataset.fields = self.fields
+        cur_dataset.fields = self.fields      # cur_dataset.fields原本为[]
         cur_iter = OrderedIterator(
             dataset=cur_dataset,
             batch_size=self.batch_size,
@@ -772,7 +796,7 @@ class DatasetLazyIter(object):
             yield_raw_example=self.yield_raw_example
         )
         for batch in cur_iter:
-            self.dataset = cur_iter.dataset
+            self.dataset = cur_iter.dataset  # 这句话作用？ 
             yield batch
 
         # NOTE: This is causing some issues for consumer/producer,
@@ -850,6 +874,7 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True, multi=False):
         batch_size = opt.batch_size if is_train else opt.valid_batch_size
         batch_fn = max_tok_len \
             if is_train and opt.batch_type == "tokens" else None
+        # 1
         batch_size_multiple = 8 if opt.model_dtype == "fp16" else 1
 
     device = "cuda" if opt.gpu_ranks else "cpu"
