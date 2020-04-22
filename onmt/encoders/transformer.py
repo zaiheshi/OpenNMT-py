@@ -45,6 +45,7 @@ class TransformerEncoderLayer(nn.Module):
 
             * outputs ``(batch_size, src_len, model_dim)``
         """
+        #  batch * seq * dim
         input_norm = self.layer_norm(inputs)
         context, _ = self.self_attn(input_norm, input_norm, input_norm,
                                     mask=mask, attn_type="self")
@@ -89,19 +90,23 @@ class TransformerEncoder(EncoderBase):
     """
 
     def __init__(self, num_layers, d_model, heads, d_ff, dropout,
-                 attention_dropout, embeddings, max_relative_positions):
+                 attention_dropout, separator, max_relative_positions, Phrase_level):
         super(TransformerEncoder, self).__init__()
 
-        self.embeddings = embeddings
-        self.transformer = nn.ModuleList(
-            [TransformerEncoderLayer(
-                d_model, heads, d_ff, dropout, attention_dropout,
-                max_relative_positions=max_relative_positions)
-             for i in range(num_layers)])
+        self.separator = separator
+        self.Phrase_level = Phrase_level
+        if self.Phrase_level:
+            self.transformer = nn.ModuleList(
+                [TransformerEncoderLayer(
+                    d_model, heads, d_ff, dropout, attention_dropout,
+                    max_relative_positions=max_relative_positions)
+                for i in range(num_layers)])
+        else:
+            raise NotImplementedError("sentence level encoder not implement")
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
     @classmethod
-    def from_opt(cls, opt, embeddings):
+    def from_opt(cls, opt, separator, Phrase_level = True):
         """Alternate constructor."""
         return cls(
             opt.enc_layers,
@@ -111,16 +116,19 @@ class TransformerEncoder(EncoderBase):
             opt.dropout[0] if type(opt.dropout) is list else opt.dropout,
             opt.attention_dropout[0] if type(opt.attention_dropout)
             is list else opt.attention_dropout,
-            embeddings,
-            opt.max_relative_positions)
+            separator,
+            opt.max_relative_positions,
+            Phrase_level)
 
     def forward(self, src, lengths=None):
         """See :func:`EncoderBase.forward()`"""
         self._check_args(src, lengths)
 
-        emb = self.embeddings(src)
+        # seq * batch * emb_sz,   seq * batch, P(z) = 1
+        emb, P_zl = self.separator(src, lengths)
 
         out = emb.transpose(0, 1).contiguous()
+        # batch * 1 * seq_len, 填充的单词标记为True
         mask = ~sequence_mask(lengths).unsqueeze(1)
         # Run the forward pass of every layer of the tranformer.
         for layer in self.transformer:

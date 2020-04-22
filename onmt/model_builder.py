@@ -67,17 +67,20 @@ def build_embeddings(opt, text_field, for_encoder=True):
     )
     return emb
 
+def build_separator(opt, embeddings):
+    return str2enc["separator"](hidden_size=256, dropout=0.0, temperature = 1, embeddings=embeddings)
 
-def build_encoder(opt, embeddings):
+def build_encoder(opt, separator):
     """
     Various encoder dispatcher function.
     Args:
         opt: the option in current environment.
         embeddings (Embeddings): vocab embeddings for this encoder.
     """
+    # transformer
     enc_type = opt.encoder_type if opt.model_type == "text" \
         or opt.model_type == "vec" else opt.model_type
-    return str2enc[enc_type].from_opt(opt, embeddings)
+    return str2enc[enc_type].from_opt(opt, separator, Phrase_level = True)
 
 
 def build_decoder(opt, embeddings):
@@ -146,14 +149,19 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
     if model_opt.model_type == "text" or model_opt.model_type == "vec":
         # TextMultiField
         src_field = fields["src"]
-        src_emb = build_embeddings(model_opt, src_field)
+        src_emb_phrase = build_embeddings(model_opt, src_field)
+        # src_emb_sentence
     else:
-        src_emb = None
+        raise RuntimeError("")
+        # src_emb = None
 
-    # Build encoder.
-    encoder = build_encoder(model_opt, src_emb)
 
-    # Build decoder.
+    # 1. Build separator
+    separator = build_separator(model_opt, src_emb_phrase)
+    # 2. Build encoder.
+    encoder = build_encoder(model_opt, separator)
+
+    # 3. Build decoder.
     tgt_field = fields["tgt"]
     tgt_emb = build_embeddings(model_opt, tgt_field, for_encoder=False)
 
@@ -166,6 +174,9 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         tgt_emb.word_lut.weight = src_emb.word_lut.weight
 
     decoder = build_decoder(model_opt, tgt_emb)
+
+    # 4. build aggregator
+    # aggregator = build_aggregator()
 
     # Build NMTModel(= encoder + decoder).
     if gpu and gpu_id is not None:

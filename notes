@@ -91,3 +91,10 @@ suppose: tensors = (tensor1, tensor2, ...), tensorN.size() = a * b
 torch.stack(tensors, 2).size() = a * b * 2
 torch.stack(tensors, 1).size() = a * 2 * b
 torch.stack(tensors, 0).size() = 2 * a * b
+
+
+# torch.repeat(), not inplace
+# torch.expand(), inplace
+
+
+# https://zhuanlan.zhihu.com/p/41261640

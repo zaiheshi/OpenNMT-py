@@ -48,8 +48,12 @@ def sequence_mask(lengths, max_len=None):
     """
     Creates a boolean mask from sequence lengths.
     """
+    # 返回元素个数
     batch_size = lengths.numel()
+    # seq_len
     max_len = max_len or lengths.max()
+    # batch * seq_len
+    # 实际存在的单词为True, 超出句子实际长度的填充单词标记为False
     return (torch.arange(0, max_len, device=lengths.device)
             .type_as(lengths)
             .repeat(batch_size, 1)

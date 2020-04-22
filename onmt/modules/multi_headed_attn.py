@@ -49,13 +49,17 @@ class MultiHeadedAttention(nn.Module):
     """
 
     def __init__(self, head_count, model_dim, dropout=0.1,
-                 max_relative_positions=0):
+                 max_relative_positions=0, attn_dst= 3, Phrase_level = True):
         assert model_dim % head_count == 0
         # 64
         self.dim_per_head = model_dim // head_count
+        # 512
         self.model_dim = model_dim
 
         super(MultiHeadedAttention, self).__init__()
+        
+        self.Phrase_level = Phrase_level
+        self.attn_dst = attn_dst
         # 8
         self.head_count = head_count
         # (512, 8*64)
@@ -116,7 +120,9 @@ class MultiHeadedAttention(nn.Module):
         # END CHECKS
 
         batch_size = key.size(0)
+        # 64
         dim_per_head = self.dim_per_head
+        # 8
         head_count = self.head_count
         key_len = key.size(1)
         query_len = query.size(1)
@@ -162,9 +168,11 @@ class MultiHeadedAttention(nn.Module):
                 layer_cache["memory_keys"] = key
                 layer_cache["memory_values"] = value
         else:
+            # batch * seq * 512
             key = self.linear_keys(key)
             value = self.linear_values(value)
             query = self.linear_query(query)
+            # batch * head  * seq * per_dim
             key = shape(key)
             value = shape(value)
 
@@ -181,6 +189,7 @@ class MultiHeadedAttention(nn.Module):
             relations_values = self.relative_positions_embeddings(
                 relative_positions_matrix.to(key.device))
 
+        # batch * head  * seq * per_dim
         query = shape(query)
 
         key_len = key.size(2)
@@ -188,23 +197,32 @@ class MultiHeadedAttention(nn.Module):
 
         # 2) Calculate and scale scores.
         query = query / math.sqrt(dim_per_head)
-        # batch x num_heads x query_len x key_len
-        query_key = torch.matmul(query, key.transpose(2, 3))
-
+        # batch x num_heads x query_len x key_len, 注意力图
+        if self.Phrase_level:
+            query_key = torch.matmul(query, key.transpose(2, 3))
+        else:
+            raise NotImplementedError("xxxxx")
         if self.max_relative_positions > 0 and attn_type == "self":
             scores = query_key + relative_matmul(query, relations_keys, True)
         else:
             scores = query_key
         scores = scores.float()
 
+        # attention mask
         if mask is not None:
+            # batch * 1 * 1 * seq_len, 不存在的单词标记为True
             mask = mask.unsqueeze(1)  # [B, 1, 1, T_values]
+            # mask的注意力好像有问题
+            # q1.q1, q1.q2
+            # q2.q1, q2.q2,   mask会把 q1.q2与q2.q2置为负无穷
+            
             scores = scores.masked_fill(mask, -1e18)
 
         # 3) Apply attention dropout and compute context vectors.
         attn = self.softmax(scores).to(query.dtype)
         drop_attn = self.dropout(attn)
 
+        # batch * head * seq * per_dim
         context_original = torch.matmul(drop_attn, value)
 
         if self.max_relative_positions > 0 and attn_type == "self":
@@ -213,6 +231,7 @@ class MultiHeadedAttention(nn.Module):
                                                 relations_values,
                                                 False))
         else:
+            # batch * seq * 512
             context = unshape(context_original)
 
         output = self.final_linear(context)
